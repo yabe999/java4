@@ -16,6 +16,24 @@ public class OrderPanel extends JPanel {
         super(new BorderLayout());
         model = new OrderTableModel(Main.orders);
         table = new JTable(model);
+
+        /* ===== 新增：自动列宽 + 长文本 Tooltip ===== */
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);          // 关闭自动缩放
+        table.getColumnModel().getColumn(1).setPreferredWidth(140); // 描述列加宽
+        table.getColumnModel().getColumn(8).setPreferredWidth(180); // 距离列加宽
+
+        // 全表通用 Tooltip（长文本悬停显示）
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (value != null) setToolTipText(value.toString()); // 悬停即完整文本
+                return c;
+            }
+        });
+
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         /* ---- 彩色状态列（按中文文字刷色） ---- */
@@ -26,14 +44,13 @@ public class OrderPanel extends JPanel {
                                                            boolean isSelected, boolean hasFocus,
                                                            int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) {                  // 保持选中高亮
-                    switch (value.toString()) {     // 中文匹配
+                if (!isSelected) {
+                    switch (value.toString()) {
                         case "待接单"  -> c.setBackground(new Color(0xE3F2FD));
                         case "配送中"  -> c.setBackground(new Color(0xFFF9C4));
                         case "已完成"  -> c.setBackground(new Color(0xC8E6C9));
-                        case "已取消",
-                             "超时"   -> c.setBackground(new Color(0xFFCDD2));
-                        default      -> c.setBackground(Color.WHITE);
+                        case "已取消", "超时" -> c.setBackground(new Color(0xFFCDD2));
+                        default -> c.setBackground(Color.WHITE);
                     }
                 }
                 c.setForeground(Color.BLACK);
@@ -42,6 +59,27 @@ public class OrderPanel extends JPanel {
         });
         statusCol.setPreferredWidth(80);
 
+        /* ---- 距离列高亮（三段距离颜色提示） ---- */
+        TableColumn distCol = table.getColumnModel().getColumn(8);
+        distCol.setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected && value != null) {
+                    String txt = value.toString();
+                    if (txt.contains("→")) {
+                        c.setBackground(new Color(0xE8F5E9)); // 浅绿：有距离
+                    } else {
+                        c.setBackground(Color.WHITE);        // 白色：无距离
+                    }
+                }
+                c.setForeground(Color.BLACK);
+                return c;
+            }
+        });
+
         /* ---- 按钮栏 ---- */
         JPanel bar = new JPanel();
         bar.add(new JButton(new PlaceOrderAction()));
@@ -49,8 +87,8 @@ public class OrderPanel extends JPanel {
         bar.add(new JButton(new CompleteOrderAction()));
         bar.add(new JButton(new CancelOrderAction()));
         bar.add(new JButton(new WithdrawOrderAction(table)));
-        bar.add(new JButton(new DeleteOrderAction()));   // 删除订单
-        bar.add(new JButton(new RateOrderAction(table))); // 新增：评价订单
+        bar.add(new JButton(new DeleteOrderAction()));
+        bar.add(new JButton(new RateOrderAction(table)));
         bar.add(new JButton(new ManualSaveAction()));
         bar.add(new JButton(new RefreshAction()));
         add(bar, BorderLayout.NORTH);
@@ -77,6 +115,11 @@ public class OrderPanel extends JPanel {
                 return;
             }
             Order order = Main.orders.get(row);
+            // ===== 只允许【已完成】订单评价 =====
+            if (order.getStatus() != OrderStatus.COMPLETED) {
+                JOptionPane.showMessageDialog(OrderPanel.this, "只有【已完成】订单可评价！");
+                return;
+            }
             if (order.isRated()) {
                 JOptionPane.showMessageDialog(OrderPanel.this, "该订单已评价！");
                 return;

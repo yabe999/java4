@@ -6,7 +6,7 @@ import java.awt.event.ActionEvent;
 
 public class UserPanel extends JPanel {
     private final UserTableModel model;
-    private final JTable table;          // 提升为成员变量，方便删除动作引用
+    private final JTable table;
 
     public UserPanel() {
         super(new BorderLayout());
@@ -17,7 +17,7 @@ public class UserPanel extends JPanel {
         JPanel bar = new JPanel();
         bar.add(new JButton(new NewStudentAction()));
         bar.add(new JButton(new NewRunnerAction()));
-        bar.add(new JButton(new DeleteUserAction()));   // ← 新增注销按钮
+        bar.add(new JButton(new DeleteUserAction()));
         bar.add(new JButton(new ManualSaveAction()));
         bar.add(new JButton(new RefreshAction()));
         add(bar, BorderLayout.NORTH);
@@ -26,6 +26,7 @@ public class UserPanel extends JPanel {
     /* ---------------- 新增学生 ---------------- */
     private class NewStudentAction extends AbstractAction {
         NewStudentAction() { super("新增学生"); }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             String n = input("姓名", true);
@@ -34,26 +35,39 @@ public class UserPanel extends JPanel {
             if (p == null) return;
             String m = input("专业", true);
             if (m == null) return;
-            // ===== 第四层追加 =====
+
+            // ===== 第四层：坐标 =====
             String lat = input("纬度（小数 22.xxx）", true, "\\d+\\.\\d+", "小数格式，例 22.543210");
             String lng = input("经度（小数 113.xxx）", true, "\\d+\\.\\d+", "小数格式，例 113.123456");
-            Main.students.add(UserFactory.createStudent(n, p, m));
+
+            Student student = UserFactory.createStudent(n, p, m);
+            student.setLocation(new Location(Double.parseDouble(lat), Double.parseDouble(lng)));
+
+            Main.students.add(student);
             model.refresh();
             JOptionPane.showMessageDialog(UserPanel.this, "学生创建成功！");
-            student.setLocation(new Location(Double.parseDouble(lat), Double.parseDouble(lng)));
         }
     }
 
     /* ---------------- 新增跑腿员 ---------------- */
     private class NewRunnerAction extends AbstractAction {
         NewRunnerAction() { super("新增跑腿员"); }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             String n = input("姓名", true);
             if (n == null) return;
             String p = input("电话（11位）", false, "\\d{11}", "必须为 11 位数字！");
             if (p == null) return;
-            Main.runners.add(UserFactory.createRunner(n, p));
+
+            // ===== 第四层：坐标 =====
+            String lat = input("纬度（小数 22.xxx）", true, "\\d+\\.\\d+", "小数格式");
+            String lng = input("经度（小数 113.xxx）", true, "\\d+\\.\\d+", "小数格式");
+
+            Runner runner = UserFactory.createRunner(n, p);
+            runner.setLocation(new Location(Double.parseDouble(lat), Double.parseDouble(lng)));
+
+            Main.runners.add(runner);
             model.refresh();
             JOptionPane.showMessageDialog(UserPanel.this, "跑腿员创建成功！");
         }
@@ -62,6 +76,7 @@ public class UserPanel extends JPanel {
     /* ---------------- 注销（删除）用户 ---------------- */
     private class DeleteUserAction extends AbstractAction {
         DeleteUserAction() { super("删除用户"); }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             int row = table.getSelectedRow();
@@ -72,7 +87,6 @@ public class UserPanel extends JPanel {
             String type = table.getValueAt(row, 0).toString();
             String name = table.getValueAt(row, 1).toString();
 
-            /* ---------- 进行中订单检测 ---------- */
             long running = Main.orders.stream()
                     .filter(o -> {
                         if (type.equals("学生")) {
@@ -108,14 +122,18 @@ public class UserPanel extends JPanel {
     /* ---------------- 手动保存 ---------------- */
     private class ManualSaveAction extends AbstractAction {
         ManualSaveAction() { super("手动保存"); }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             new SwingWorker<Void, Void>() {
-                @Override protected Void doInBackground() throws Exception {
+                @Override
+                protected Void doInBackground() throws Exception {
                     Main.saveData();
                     return null;
                 }
-                @Override protected void done() {
+
+                @Override
+                protected void done() {
                     JOptionPane.showMessageDialog(UserPanel.this, "保存完成！");
                 }
             }.execute();
@@ -125,13 +143,18 @@ public class UserPanel extends JPanel {
     /* ---------------- 刷新 ---------------- */
     private class RefreshAction extends AbstractAction {
         RefreshAction() { super("刷新"); }
-        @Override public void actionPerformed(ActionEvent e) { model.refresh(); }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            model.refresh();
+        }
     }
 
     /* ---------------- 通用输入 ---------------- */
     private String input(String field, boolean nonEmpty) {
         return input(field, nonEmpty, null, null);
     }
+
     private String input(String field, boolean nonEmpty, String regex, String errMsg) {
         while (true) {
             String val = JOptionPane.showInputDialog(field);

@@ -20,7 +20,7 @@ public class Order implements Serializable {
     private boolean rated = false;   // 已评标记
     /* =================================== */
     /* ========== 第四层：坐标 ========== */
-    private Location location;
+    private Location cargoLocation;  // 商家/货物位置
     /* =================================== */
 
     /* ---------------- 构造 & ID 生成 ---------------- */
@@ -96,9 +96,10 @@ public class Order implements Serializable {
     public void setScore(int score) { this.score = score; }
     public boolean isRated() { return rated; }
     public void setRated(boolean rated) { this.rated = rated; }
-    /* ===================四，坐标========================= */
-    public Location getLocation() { return location; }
-    public void setLocation(Location location) { this.location = location; }
+    /* ============================================ */
+    /* ---------------- 第四层：坐标 ---------------- */
+    public Location getCargoLocation() { return cargoLocation; }
+    public void setCargoLocation(Location cargoLocation) { this.cargoLocation = cargoLocation; }
 
     @Override
     public String toString() {

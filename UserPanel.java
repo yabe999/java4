@@ -36,9 +36,10 @@ public class UserPanel extends JPanel {
             String m = input("专业", true);
             if (m == null) return;
 
-            // ===== 第四层：坐标 =====
             String lat = input("纬度（小数 22.xxx）", true, "\\d+\\.\\d+", "小数格式，例 22.543210");
+            if (lat == null) return;
             String lng = input("经度（小数 113.xxx）", true, "\\d+\\.\\d+", "小数格式，例 113.123456");
+            if (lng == null) return;
 
             Student student = UserFactory.createStudent(n, p, m);
             student.setLocation(new Location(Double.parseDouble(lat), Double.parseDouble(lng)));
@@ -60,9 +61,10 @@ public class UserPanel extends JPanel {
             String p = input("电话（11位）", false, "\\d{11}", "必须为 11 位数字！");
             if (p == null) return;
 
-            // ===== 第四层：坐标 =====
             String lat = input("纬度（小数 22.xxx）", true, "\\d+\\.\\d+", "小数格式");
+            if (lat == null) return;
             String lng = input("经度（小数 113.xxx）", true, "\\d+\\.\\d+", "小数格式");
+            if (lng == null) return;
 
             Runner runner = UserFactory.createRunner(n, p);
             runner.setLocation(new Location(Double.parseDouble(lat), Double.parseDouble(lng)));

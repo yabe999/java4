@@ -16,7 +16,10 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
 
         /* ---------- 数据加载 ---------- */
-        Main.loadOnStartup(); // 沿用第二层加载逻辑
+        Main.loadOnStartup();          // 沿用第二层加载逻辑
+
+        /* ---------- 启动 GPS 坐标接收 ---------- */
+        GpsReceiver.start();           // ← 仅启动一次
 
         /* ---------- 界面 ---------- */
         JTabbedPane tab = new JTabbedPane();
@@ -26,9 +29,18 @@ public class MainFrame extends JFrame {
 
         /* ---------- 后台线程 ---------- */
         AutoSaveManager asm = new AutoSaveManager();
-        TimeoutManager tm = new TimeoutManager();
+        TimeoutManager tm  = new TimeoutManager();
         pool.scheduleWithFixedDelay(asm, 0, 5, TimeUnit.MINUTES);
-        pool.scheduleWithFixedDelay(tm, 0, 30, TimeUnit.SECONDS);
+        pool.scheduleWithFixedDelay(tm,  0, 30, TimeUnit.SECONDS);
+
+        /* ---------- 优雅退出 ---------- */
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                GpsReceiver.stop();   // 释放 8085 端口
+                pool.shutdown();
+            }
+        });
     }
 
     public static void main(String[] args) {

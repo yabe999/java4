@@ -42,8 +42,8 @@ public class Order implements Serializable {
     /* ---------------- 终态资源释放 ---------------- */
     private void releaseRunner() {
         if (this.runner != null) {
-            this.runner.completeOrder();
-            this.runner = null;
+            this.runner.completeOrder(); // 状态→空闲
+            this.runner = null;          // 订单也清引用
         }
     }
 
@@ -61,7 +61,7 @@ public class Order implements Serializable {
             }
             case DELIVERING -> {
                 if (newStatus == OrderStatus.COMPLETED || newStatus == OrderStatus.CANCELED) {
-                    releaseRunner();
+                    releaseRunner();   // ⭐ 终态统一放人
                     setStatus(newStatus);
                 } else {
                     throw new InvalidOrderStateException("Delivering → " + newStatus + " 非法");

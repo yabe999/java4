@@ -37,26 +37,26 @@ public class OrderTableModel extends AbstractTableModel {
             case 5: return o.isUrgent() ? "是" : "否";
             case 6: return o.getCreateTime().toString();
             case 7: return o.isRated() ? "⭐" + o.getScore() : "未评";
-            case 8: // 动态三段距离
+            case 8: // 距离列：配送中使用百度API距离，其他使用球面距离
                 Location cargo = o.getCargoLocation();
-                if (cargo == null) return "-";
+                Location stu = o.getStudent().getLocation();
+                if (cargo == null || stu == null) return "-";
 
-                switch (o.getStatus()) {
-                    case PENDING:
-                        double stuKm = o.getStudent().getLocation() == null ? -1 :
-                                DistanceUtil.km(o.getStudent().getLocation(), cargo);
-                        double runKm = o.getRunner() == null || o.getRunner().getLocation() == null ? -1 :
-                                DistanceUtil.km(o.getRunner().getLocation(), cargo);
-                        if (stuKm < 0 && runKm < 0) return "-";
-                        return String.format("学生→货%.1f | 跑腿→货%.1f", stuKm, runKm);
-
-                    case DELIVERING:
-                        if (o.getStudent().getLocation() == null) return "-";
-                        return String.format("货→学生%.1f",
-                                DistanceUtil.km(cargo, o.getStudent().getLocation()));
-
-                    default: // 已完成/取消
-                        return "-";
+                // 状态判断：配送中使用百度地图真实驾驶距离
+                if (o.getStatus() == OrderStatus.DELIVERING) {
+                    // 调用百度API获取驾驶距离（米）
+                    int meter = BaiduMapService.meter(stu, cargo);
+                    if (meter >= 0) {
+                        return String.format("%.2f km (百度)", meter / 1000.0);
+                    } else {
+                        // API调用失败时 fallback 到球面距离
+                        double km = DistanceUtil.km(cargo, stu);
+                        return String.format("%.2f km (备用)", km);
+                    }
+                } else {
+                    // 非配送中状态使用原球面直线距离
+                    double km = DistanceUtil.km(cargo, stu);
+                    return String.format("%.2f km", km);
                 }
             default: return "";
         }

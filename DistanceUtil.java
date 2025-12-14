@@ -1,17 +1,23 @@
 package exp;
 
 public final class DistanceUtil {
-    private static final double EARTH_RADIUS = 6371; // km
 
+    private static final double EARTH_RADIUS_KM = 6371.0;
+
+    /** 球面距离（km），仅用于范围判断 */
     public static double km(Location a, Location b) {
-        double rad = Math.toRadians(b.getLatitude() - a.getLatitude());
-        double lng = Math.toRadians(b.getLongitude() - a.getLongitude());
         double lat1 = Math.toRadians(a.getLatitude());
+        double lon1 = Math.toRadians(a.getLongitude());
         double lat2 = Math.toRadians(b.getLatitude());
+        double lon2 = Math.toRadians(b.getLongitude());
 
-        double h = Math.sin(rad / 2) * Math.sin(rad / 2) +
-                Math.cos(lat1) * Math.cos(lat2) *
-                        Math.sin(lng / 2) * Math.sin(lng / 2);
-        return 2 * EARTH_RADIUS * Math.asin(Math.sqrt(h));
+        double dLat = lat2 - lat1;
+        double dLon = lon2 - lon1;
+
+        double h = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(lat1) * Math.cos(lat2)
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
     }
 }

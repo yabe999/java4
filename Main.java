@@ -2,10 +2,12 @@ package exp;
 
 import java.io.*;
 import java.util.*;
+import exp.BaiduMapService;   // ← 关键：导入工具类
+
 public class Main {
     public static List<Student> students = new ArrayList<>();
-    public static List<Runner> runners = new ArrayList<>();
-    public static List<Order> orders = new ArrayList<>();
+    public static List<Runner> runners   = new ArrayList<>();
+    public static List<Order> orders     = new ArrayList<>();
     private static final Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) {
@@ -39,7 +41,7 @@ public class Main {
         }
     }
 
-    /* ---------- 以下为原第二层代码，省略展示，与之前完全一致 ---------- */
+    /* ================= 第二层能力层（省略展示，与之前完全一致） ================= */
     private static void createStudent() {
         String name = readLine("姓名: ");
         String phone = readPhone();
@@ -106,18 +108,80 @@ public class Main {
         } catch (Exception ex) { System.out.println("保存失败: " + ex.getMessage()); }
     }
     public static void loadOnStartup() {
+        /* ===== 1. 正常加载 ===== */
         try {
             students = (List<Student>) PersistenceManager.load("students.dat");
-            runners = (List<Runner>) PersistenceManager.load("runners.dat");
-            orders = (List<Order>) PersistenceManager.load("orders.dat");
+            runners  = (List<Runner>)  PersistenceManager.load("runners.dat");
+            orders   = (List<Order>)   PersistenceManager.load("orders.dat");
             System.out.println("启动时全部数据已恢复");
         } catch (Exception ex) {
             System.out.println("无历史数据，全新开始");
             students = new ArrayList<>();
-            runners = new ArrayList<>();
-            orders = new ArrayList<>();
+            runners  = new ArrayList<>();
+            orders   = new ArrayList<>();
+        }
+
+        /* ===== 2. 一次性修复 lat/lng 颠倒（跑完可删） ===== */
+        boolean needSave = false;
+        for (Order o : orders) {
+            if (o.getCargoLocation() != null) {
+                Location loc = o.getCargoLocation();
+                if (Math.abs(loc.getLatitude()) > 90 || Math.abs(loc.getLongitude()) > 180) {
+                    o.setCargoLocation(new Location(loc.getLongitude(), loc.getLatitude()));
+                    needSave = true;
+                }
+            }
+        }
+        for (Student s : students) {
+            if (s.getLocation() != null) {
+                Location loc = s.getLocation();
+                if (Math.abs(loc.getLatitude()) > 90 || Math.abs(loc.getLongitude()) > 180) {
+                    s.setLocation(new Location(loc.getLongitude(), loc.getLatitude()));
+                    needSave = true;
+                }
+            }
+        }
+        for (Runner r : runners) {
+            if (r.getLocation() != null) {
+                Location loc = r.getLocation();
+                if (Math.abs(loc.getLatitude()) > 90 || Math.abs(loc.getLongitude()) > 180) {
+                    r.setLocation(new Location(loc.getLongitude(), loc.getLatitude()));
+                    needSave = true;
+                }
+            }
+        }
+        if (needSave) {
+            saveData();                       // 纠正后立刻落盘
+            System.out.println("已自动修复坐标顺序！");
+        }
+
+        /* ===== 3. 启动时给学生/跑手自动定位（失败不影响） ===== */
+        for (Student s : students) {
+            if (s.getLocation() == null) {
+                Location here = BaiduMapService.getCurrentLocation();
+                if (here != null) s.setLocation(here);
+            }
+        }
+        for (Runner r : runners) {
+            if (r.getLocation() == null) {
+                Location here = BaiduMapService.getCurrentLocation();
+                if (here != null) r.setLocation(here);
+            }
+        }
+
+        /* ===== 4. 世界归零：强制完成所有配送中订单，释放所有忙碌跑腿员 ===== */
+        for (Order o : orders) {
+            if (o.getStatus() == OrderStatus.DELIVERING) {
+                o.changeStatus(OrderStatus.COMPLETED);   // 触发 releaseRunner
+            }
+        }
+        for (Runner r : runners) {
+            if ("忙碌".equals(r.getStatus())) {
+                r.completeOrder();   // 强制空闲
+            }
         }
     }
+
     private static void runJUnitTest() { StateMachineTest.main(new String[0]); }
     private static void saveOnExit() {
         try { PersistenceManager.save(orders, "orders.dat"); } catch (Exception ignore) {}

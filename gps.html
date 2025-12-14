@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>一键 GPS 定位</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            margin-top: 50px;
+        }
+        button {
+            width: 200px;
+            height: 40px;
+            font-size: 16px;
+        }
+        pre {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<button onclick="locate()">获取我的位置</button>
+<pre id="out"></pre>
+
+<script>
+    function locate() {
+        if (!navigator.geolocation) {
+            alert("浏览器不支持 GPS 定位");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+
+                document.getElementById("out").textContent =
+                    `纬度：${lat}\n经度：${lng}`;
+
+                // ⭐ 改为 GET + query 参数（关键修复）
+                fetch(`http://localhost:8085/pos?lng=${lng}&lat=${lat}`)
+                    .then(r => r.text())
+                    .then(() => {
+                        alert("定位成功，已回传给程序");
+                    });
+            },
+            err => {
+                alert("定位失败：" + err.message);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000
+            }
+        );
+    }
+</script>
+
+</body>
+</html>
